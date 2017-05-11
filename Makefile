@@ -113,7 +113,8 @@ CSRC = $(STARTUPSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
        $(TESTSRC) \
-       main.c
+       main.c \
+       iic1602.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.

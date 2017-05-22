@@ -5,99 +5,101 @@
  *      Author: alpha-user
  */
 
+
+
 #ifndef IIC1602_H_
 #define IIC1602_H_
 #include "ch.h"
 #include "hal.h"
 
-// LCD Commands
-// ---------------------------------------------------------------------------
-#define LCD_CLEARDISPLAY        0x01
-#define LCD_RETURNHOME          0x02
-#define LCD_ENTRYMODESET        0x04
-#define LCD_DISPLAYCONTROL      0x08
-#define LCD_CURSORSHIFT         0x10
-#define LCD_FUNCTIONSET         0x20
-#define LCD_SETCGRAMADDR        0x40
-#define LCD_SETDDRAMADDR        0x80
-
-// flags for display entry mode
-// ---------------------------------------------------------------------------
-#define LCD_ENTRYRIGHT          0x00
-#define LCD_ENTRYLEFT           0x02
-#define LCD_ENTRYSHIFTINCREMENT 0x01
-#define LCD_ENTRYSHIFTDECREMENT 0x00
-
-// flags for display on/off and cursor control
-// ---------------------------------------------------------------------------
-#define LCD_DISPLAYON           0x04
-#define LCD_DISPLAYOFF          0x00
-#define LCD_CURSORON            0x02
-#define LCD_CURSOROFF           0x00
-#define LCD_BLINKON             0x01
-#define LCD_BLINKOFF            0x00
-
-// flags for display/cursor shift
-// ---------------------------------------------------------------------------
-#define LCD_DISPLAYMOVE         0x08
-#define LCD_CURSORMOVE          0x00
-#define LCD_MOVERIGHT           0x04
-#define LCD_MOVELEFT            0x00
-
-// flags for function set
-// ---------------------------------------------------------------------------
-#define LCD_8BITMODE            0x10
-#define LCD_4BITMODE            0x00
-#define LCD_2LINE               0x08
-#define LCD_1LINE               0x00
-#define LCD_5x10DOTS            0x04
-#define LCD_5x8DOTS             0x00
-
-
-// Define COMMAND and DATA LCD Rs (used by send method).
-// ---------------------------------------------------------------------------
-#define COMMAND                 0
-#define DATA                    1
-#define FOUR_BITS               2
-
-
-/*!
- @defined
- @abstract   Defines the duration of the home and clear commands
- @discussion This constant defines the time it takes for the home and clear
- commands in the LCD - Time in microseconds.
+/*
+ *
+ * P0=RS
+ * P1=RW
+ * P2=E
+ *
+ * P3=BL
+ *
+ * P4=D4
+ * P5=D5
+ * P6=D6
+ * P7=D7
+ *
  */
-#define HOME_CLEAR_EXEC      2000
 
-/*!
-    @defined
-    @abstract   Backlight off constant declaration
-    @discussion Used in combination with the setBacklight to swith off the
- LCD backlight. @set setBacklight
-*/
-#define BACKLIGHT_OFF           0
+#define LCD_I2C_RS 0
+#define LCD_I2C_RW 1
+#define LCD_I2C_E  2
+#define LCD_I2C_BL 3
+#define LCD_I2C_D4 4
+#define LCD_I2C_D5 5
+#define LCD_I2C_D6 6
+#define LCD_I2C_D7 7
 
-/*!
- @defined
- @abstract   Backlight on constant declaration
- @discussion Used in combination with the setBacklight to swith on the
- LCD backlight. @set setBacklight
- */
-#define BACKLIGHT_ON          255
 
-#define LCD_ADDR 0x27
-#define LCD_NOBACKLIGHT 0x00
-#define LCD_BACKLIGHT   0xFF
-#define EN 6  // Enable bit
-#define RW 5  // Read/Write bit
-#define RS 4  // Register select bit
-#define D4 0
-#define D5 1
-#define D6 2
-#define D7 3
+#define LCD_PIN_BL (1<<5)
+#define LCD_PIN_RS (1<<6)
+#define LCD_PIN_RW (1<<7)
+
+#define LCD_I2C_ADDR 0x27
+
+
+#define LCD_CLEARDISPLAY            0b0001
+
+
+#define LCD_RETURNHOME              0b0010
+
+
+#define LCD_ENTRYMODE_RIGHT             0b110
+#define LCD_ENTRYMODE_LEFT              0b100
+
+#define LCD_ENTRYMODE_SHIFT_DISPLAY     0b101
+#define LCD_ENTRYMODE_SHIFT_CURSOR      0b100
+
+
+#define LCD_OPERATION_DISPLAY_ON        0b1100
+#define LCD_OPERATION_DISPLAY_OFF       0b1000
+
+#define LCD_OPERATION_CURSOR_ON         0b1010
+#define LCD_OPERATION_CURSOR_OFF        0b1000
+
+#define LCD_OPERATION_CURSORBLINK_ON    0b1001
+#define LCD_OPERATION_CURSORBLINK_OFF   0b1000
+
+
+#define LCD_SHIFT_CURSOR_LEFT           0b10000
+#define LCD_SHIFT_CURSOR_RIGHT          0b11000
+
+#define LCD_SHIFT_DISPLAY_LEFT          0b10000
+#define LCD_SHIFT_DISPLAY_RIGHT         0b10100
+
+
+#define LCD_FUNCTIONSET_DATALENGTH_8BIT 0b110000
+#define LCD_FUNCTIONSET_DATALENGTH_4BIT 0b100000
+
+#define LCD_FUNCTIONSET_1LINE           0b100000
+#define LCD_FUNCTIONSET_2LINES          0b101000
+
+#define LCD_FUNCTIONSET_5X8FONT         0b100000
+#define LCD_FUNCTIONSET_5X11FONT        0b100100
+
+#define LCD_CGRAM_CMD                   0b1000000
+#define LCD_CGRAM_ADDR_MASK             0b111111
+#define LCD_DDRAM_CMD                   0b10000000
+#define LCD_DDRAM_ADDR_MASK             0b1111111
+
+#define LCD_MODE_GET_BUSY_FLAG          0b10
+#define LCD_BUSY_FLAG_MASK              0b10000000
+
+#define LCD_ADDR_MASK                   0b1111111
+
+
+
 
 
 void LCD_init(void);
-void LCD_send(uint8_t value, uint8_t mode);
+void LCD_cmd(uint8_t value);
+void LCD_transmit(uint8_t value, uint8_t control);
+uint8_t LCD_read(void);
 
 #endif /* IIC1602_H_ */

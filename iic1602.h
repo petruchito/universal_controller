@@ -88,18 +88,28 @@
 #define LCD_DDRAM_CMD                   0b10000000
 #define LCD_DDRAM_ADDR_MASK             0b1111111
 
-#define LCD_MODE_GET_BUSY_FLAG          0b10
 #define LCD_BUSY_FLAG_MASK              0b10000000
 
 #define LCD_ADDR_MASK                   0b1111111
 
 
 
+void I2C_get_pins(uint8_t *value);
+void I2C_set_pins(uint8_t *value, uint8_t length);
+void I2C_transmit_4bit(uint8_t value);
 
+uint8_t LCD_get_bf(void);
+
+void LCD_transmit(uint8_t value, uint8_t control);
 
 void LCD_init(void);
+
 void LCD_cmd(uint8_t value);
-void LCD_transmit(uint8_t value, uint8_t control);
+
+void LCD_clear(void);
+
+void LCD_home(void);
+
 uint8_t LCD_read(void);
 
 #endif /* IIC1602_H_ */

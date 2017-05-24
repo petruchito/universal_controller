@@ -6,9 +6,8 @@
  */
 
 #include "iic1602.h"
+
 uint8_t backlight = 1;
-
-
 
 static const I2CConfig i2cfg = {
     OPMODE_I2C,
@@ -16,26 +15,77 @@ static const I2CConfig i2cfg = {
     FAST_DUTY_CYCLE_2,
 };
 
+uint8_t I2C_map_pins(uint8_t value) {
+
+//   internal format: [7:RW] [6:RS] [5:NOT USED] [4:E]
+//                    [3:D7/D3] [2:D6/D2] [1:D5/D1] [0:D4/D0]
+//   to physical connections of PCF8574
+
+  uint8_t mapped = 0;
+  mapped |= (((value>>0) & 1) << LCD_I2C_D4);
+  mapped |= (((value>>1) & 1) << LCD_I2C_D5);
+  mapped |= (((value>>2) & 1) << LCD_I2C_D6);
+  mapped |= (((value>>3) & 1) << LCD_I2C_D7);
+  mapped |= (((value>>4) & 1) << LCD_I2C_E);
+  mapped |= (backlight << LCD_I2C_BL);
+  mapped |= (((value>>6) & 1) << LCD_I2C_RS);
+  mapped |= (((value>>7) & 1) << LCD_I2C_RW);
+  return mapped;
+}
+
+uint8_t I2C_unmap_pins(uint8_t value) {
+  uint8_t unmapped = 0;
+  unmapped |= (((value>>LCD_I2C_RW) & 1) << _LCD_RW);
+  unmapped |= (((value>>LCD_I2C_RS) & 1) << _LCD_RS);
+  unmapped |= (((value>>LCD_I2C_E ) & 1) << _LCD_E);
+  unmapped |= (((value>>LCD_I2C_D4) & 1) << _LCD_D4_0);
+  unmapped |= (((value>>LCD_I2C_D5) & 1) << _LCD_D5_1);
+  unmapped |= (((value>>LCD_I2C_D6) & 1) << _LCD_D6_2);
+  unmapped |= (((value>>LCD_I2C_D7) & 1) << _LCD_D7_3);
+  return unmapped;
+}
+
+
 void I2C_set_pins(uint8_t *value, uint8_t length) {
   systime_t timeout = MS2ST(4);
 
   i2cAcquireBus(&I2CD1);
   i2cMasterTransmitTimeout(&I2CD1,LCD_I2C_ADDR,value,length,NULL,0,timeout);
   i2cReleaseBus(&I2CD1);
-  chThdSleepMicroseconds(1);
+  chThdSleepMicroseconds(100);
 }
 
-void I2C_get_pins(uint8_t *value) {
+uint8_t I2C_read_bf_ac() {
   systime_t timeout = MS2ST(4);
-  uint8_t command[2] = { (1<<LCD_I2C_RW)|(backlight<<LCD_I2C_BL)|(1<<LCD_I2C_E),
-                         (1<<LCD_I2C_RW)|(backlight<<LCD_I2C_BL) };
+  uint8_t rxbuffer[4] = {0,0,0,0};
+
+  uint8_t command[3] = { I2C_map_pins(LCD_PIN_RW|LCD_PIN_E|0xF),
+                         I2C_map_pins(LCD_PIN_RW),
+                         I2C_map_pins(0)};
 
   i2cAcquireBus(&I2CD1);
-  i2cMasterTransmitTimeout(&I2CD1,LCD_I2C_ADDR,command,2,value,2,timeout);
+
+  i2cMasterTransmitTimeout(&I2CD1,LCD_I2C_ADDR,command,1,NULL,0,timeout);
+  i2cMasterReceiveTimeout(&I2CD1, LCD_I2C_ADDR, rxbuffer, 2, timeout);
+  i2cMasterTransmitTimeout(&I2CD1,LCD_I2C_ADDR,command+1,1,NULL,0,timeout);
+
+  i2cMasterTransmitTimeout(&I2CD1,LCD_I2C_ADDR,command,1,NULL,0,timeout);
+  i2cMasterReceive(&I2CD1, LCD_I2C_ADDR, rxbuffer+2, 2);
+  i2cMasterTransmitTimeout(&I2CD1,LCD_I2C_ADDR,command+2,1,NULL,0,timeout);
+  i2cMasterTransmitTimeout(&I2CD1,LCD_I2C_ADDR,command,2,NULL,0,timeout);
   i2cReleaseBus(&I2CD1);
+
+  rxbuffer[1] = I2C_unmap_pins(rxbuffer[1]);
+  rxbuffer[3] = I2C_unmap_pins(rxbuffer[3]);
+  rxbuffer[0] = ((rxbuffer[1]<<4)|(rxbuffer[3] & 0xF));
+  return ((rxbuffer[1]<<4)|(rxbuffer[3] & 0xF));
 }
 
 void I2C_transmit_4bit(uint8_t value) {
+//  while (LCD_get_bf()) {
+//        chThdSleepMilliseconds(2);
+//    }
+
   uint8_t pin_mapped_value[2] = {0, 0};
   pin_mapped_value[0] |= (((value>>0) & 1)<<LCD_I2C_D4);
   pin_mapped_value[0] |= (((value>>1) & 1)<<LCD_I2C_D5);
@@ -65,9 +115,18 @@ void LCD_home() {
 }
 
 uint8_t LCD_get_bf() {
-  uint8_t read_value[2] = {0,0};
-  I2C_get_pins(read_value);
-  return read_value[0] & LCD_BUSY_FLAG_MASK;
+  return I2C_read_bf_ac() & LCD_BUSY_FLAG_MASK;
+}
+
+void LCD_char(char value) {
+  LCD_transmit(value, LCD_PIN_RS);
+}
+
+void LCD_goto(uint8_t row, uint8_t column) {
+  uint8_t position = column;
+  if (row == 2) position += 0x40;
+  position &= LCD_DDRAM_ADDR_MASK;
+  LCD_cmd(LCD_DDRAM_CMD | position);
 }
 
 void LCD_init(void) {
@@ -89,17 +148,19 @@ void LCD_init(void) {
   I2C_transmit_4bit(LCD_FUNCTIONSET_DATALENGTH_4BIT>>4);
   I2C_transmit_4bit(LCD_FUNCTIONSET_DATALENGTH_4BIT>>4);
   I2C_transmit_4bit(LCD_OPERATION_DISPLAY_OFF);
-  
   LCD_clear();
   LCD_cmd(LCD_FUNCTIONSET_2LINES|LCD_FUNCTIONSET_5X8FONT);
-
   LCD_home();
   LCD_cmd(LCD_OPERATION_DISPLAY_ON|
           LCD_OPERATION_CURSOR_ON|
           LCD_OPERATION_CURSORBLINK_ON);
-
-  LCD_transmit('a', LCD_PIN_RS|LCD_PIN_BL);
-  LCD_transmit('b', LCD_PIN_RS|LCD_PIN_BL);
+  int i;
+  for (i = 0;  i<20; i++) LCD_transmit('a'+i, LCD_PIN_RS);
+  LCD_goto(2,5);
+  LCD_clear();
+  LCD_get_bf();
+  LCD_char('b');
+  LCD_char('c');
 
 
 
@@ -115,13 +176,6 @@ void LCD_transmit(uint8_t value, uint8_t control) { //value [D7..D0]
   }
 
 void LCD_cmd(uint8_t value) {
-//  int i=0;
-//  while (LCD_get_bf())
-//  {
-//    i++;
-//    chThdSleepMicroseconds(100);
-//  }
-//  i++;
-  //LCD_get_bf();
+
   LCD_transmit(value,0);
 }

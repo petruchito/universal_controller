@@ -13,7 +13,7 @@
 #include "hal.h"
 
 /*
- *
+ * Physical connections:
  * P0=RS
  * P1=RW
  * P2=E
@@ -36,12 +36,35 @@
 #define LCD_I2C_D6 6
 #define LCD_I2C_D7 7
 
+//
+//   internal format: [7:RW] [6:RS] [5:NOT USED] [4:E]
+//                    [3:D7/D3] [2:D6/D2] [1:D5/D1] [0:D4/D0]
 
-#define LCD_PIN_BL (1<<5)
+#define _LCD_D4_0 0
+#define _LCD_D5_1 1
+#define _LCD_D6_2 2
+#define _LCD_D7_3 3
+#define _LCD_E    4
+#define _LCD_RS   6
+#define _LCD_RW   7
+
+#define LCD_PIN_D4_0 (1<<0)
+#define LCD_PIN_D5_1 (1<<1)
+#define LCD_PIN_D6_2 (1<<2)
+#define LCD_PIN_D7_3 (1<<3)
+#define LCD_PIN_E  (1<<4)
 #define LCD_PIN_RS (1<<6)
 #define LCD_PIN_RW (1<<7)
 
+//
+// IIC address
+//
+
 #define LCD_I2C_ADDR 0x27
+
+
+#define LCD_STRING_SIZE 16
+#define LCD_ROW_SIZE    2
 
 
 #define LCD_CLEARDISPLAY            0b0001
@@ -93,8 +116,8 @@
 #define LCD_ADDR_MASK                   0b1111111
 
 
-
-void I2C_get_pins(uint8_t *value);
+uint8_t I2C_map_pins(uint8_t value);
+uint8_t I2C_read_bf_ac(void);
 void I2C_set_pins(uint8_t *value, uint8_t length);
 void I2C_transmit_4bit(uint8_t value);
 
@@ -109,6 +132,10 @@ void LCD_cmd(uint8_t value);
 void LCD_clear(void);
 
 void LCD_home(void);
+
+void LCD_char(char value);
+
+void LCD_goto(uint8_t x, uint8_t y);
 
 uint8_t LCD_read(void);
 

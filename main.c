@@ -23,7 +23,7 @@ static THD_FUNCTION(UpdateDisplay, arg) {
 }
 
 int main(void) {
-  halInit();
+   halInit();
     chSysInit();
 
 

@@ -4,7 +4,8 @@
  *  Created on: 09 мая 2017 г.
  *      Author: alpha-user
  */
-
+#include <stdlib.h>
+#include <string.h>
 #include "iic1602.h"
 
 uint8_t backlight = 1;
@@ -48,14 +49,13 @@ uint8_t I2C_unmap_pins(uint8_t value) {
 
 void I2C_set_pins(uint8_t *value, uint8_t length) {
   systime_t timeout = MS2ST(4);
-
   i2cAcquireBus(&I2CD1);
   i2cMasterTransmitTimeout(&I2CD1,LCD_I2C_ADDR,value,length,NULL,0,timeout);
   i2cReleaseBus(&I2CD1);
   chThdSleepMicroseconds(100);
 }
 
-uint8_t I2C_read_bf_ac() {
+ /* uint8_t I2C_read_bf_ac() {
   systime_t timeout = MS2ST(4);
   uint8_t rxbuffer[4] = {0,0,0,0};
 
@@ -72,36 +72,20 @@ uint8_t I2C_read_bf_ac() {
   i2cMasterTransmitTimeout(&I2CD1,LCD_I2C_ADDR,command,1,NULL,0,timeout);
   i2cMasterReceive(&I2CD1, LCD_I2C_ADDR, rxbuffer+2, 2);
   i2cMasterTransmitTimeout(&I2CD1,LCD_I2C_ADDR,command+2,1,NULL,0,timeout);
-  i2cMasterTransmitTimeout(&I2CD1,LCD_I2C_ADDR,command,2,NULL,0,timeout);
+  //i2cMasterTransmitTimeout(&I2CD1,LCD_I2C_ADDR,command,2,NULL,0,timeout);
   i2cReleaseBus(&I2CD1);
-
+  chThdSleepMicroseconds(1);
   rxbuffer[1] = I2C_unmap_pins(rxbuffer[1]);
   rxbuffer[3] = I2C_unmap_pins(rxbuffer[3]);
   rxbuffer[0] = ((rxbuffer[1]<<4)|(rxbuffer[3] & 0xF));
   return ((rxbuffer[1]<<4)|(rxbuffer[3] & 0xF));
 }
+*/
 
 void I2C_transmit_4bit(uint8_t value) {
-//  while (LCD_get_bf()) {
-//        chThdSleepMilliseconds(2);
-//    }
-
-  uint8_t pin_mapped_value[2] = {0, 0};
-  pin_mapped_value[0] |= (((value>>0) & 1)<<LCD_I2C_D4);
-  pin_mapped_value[0] |= (((value>>1) & 1)<<LCD_I2C_D5);
-  pin_mapped_value[0] |= (((value>>2) & 1)<<LCD_I2C_D6);
-  pin_mapped_value[0] |= (((value>>3) & 1)<<LCD_I2C_D7);
-
-//  pin_mapped_value[0] |= (((value>>5) & 1)<<LCD_I2C_BL);
-  pin_mapped_value[0] |= (backlight << LCD_I2C_BL);
-  pin_mapped_value[0] |= (((value>>6) & 1)<<LCD_I2C_RS);
-  pin_mapped_value[0] |= (((value>>7) & 1)<<LCD_I2C_RW);
-
-  pin_mapped_value[1] = pin_mapped_value[0];
-  pin_mapped_value[0] |= (1<<LCD_I2C_E);
-
+  uint8_t pin_mapped_value[2] = {I2C_map_pins(value|LCD_PIN_E),
+                                 I2C_map_pins(value)};
   I2C_set_pins(pin_mapped_value, 2);
-
 }
 
 void LCD_clear() {
@@ -114,12 +98,39 @@ void LCD_home() {
   chThdSleepMilliseconds(2);
 }
 
-uint8_t LCD_get_bf() {
-  return I2C_read_bf_ac() & LCD_BUSY_FLAG_MASK;
+void LCD_shift_cmd(int8_t value, uint8_t command_l, uint8_t command_r) {
+  uint8_t displacement = abs(value);
+  uint8_t command;
+  if (value > 0) {
+    command = command_r;
+  } else {
+    command = command_l;
+  }
+
+  uint8_t i;
+  for (i=1;i<displacement;i++) {
+    LCD_cmd(command);
+  }
 }
+
+void LCD_shift_cursor(int8_t value) {
+  LCD_shift_cmd(value, LCD_SHIFT_CURSOR_LEFT, LCD_SHIFT_CURSOR_RIGHT);
+}
+void LCD_shift_display(int8_t value) {
+  LCD_shift_cmd(value, LCD_SHIFT_DISPLAY_LEFT, LCD_SHIFT_DISPLAY_RIGHT);
+}
+
 
 void LCD_char(char value) {
   LCD_transmit(value, LCD_PIN_RS);
+}
+
+void LCD_string(char* value) {
+  size_t length = strlen(value);
+  uint8_t i;
+  for(i=0;i<length;i++) {
+    LCD_char(value[i]);
+  }
 }
 
 void LCD_goto(uint8_t row, uint8_t column) {
@@ -127,6 +138,21 @@ void LCD_goto(uint8_t row, uint8_t column) {
   if (row == 2) position += 0x40;
   position &= LCD_DDRAM_ADDR_MASK;
   LCD_cmd(LCD_DDRAM_CMD | position);
+}
+
+void LCD_test() {
+  int i;
+  for (i = 0; i < 0x28; i++) {
+    LCD_transmit('a' + i, LCD_PIN_RS);
+    if (i % 2)
+      chThdSleepMilliseconds(100);
+  }
+  chThdSleepMilliseconds(2000);
+  LCD_goto(2, 5);
+  LCD_clear();
+  LCD_char('b');
+  LCD_char('c');
+  LCD_string("test");
 }
 
 void LCD_init(void) {
@@ -149,33 +175,22 @@ void LCD_init(void) {
   I2C_transmit_4bit(LCD_FUNCTIONSET_DATALENGTH_4BIT>>4);
   I2C_transmit_4bit(LCD_OPERATION_DISPLAY_OFF);
   LCD_clear();
+
   LCD_cmd(LCD_FUNCTIONSET_2LINES|LCD_FUNCTIONSET_5X8FONT);
   LCD_home();
   LCD_cmd(LCD_OPERATION_DISPLAY_ON|
           LCD_OPERATION_CURSOR_ON|
           LCD_OPERATION_CURSORBLINK_ON);
-  int i;
-  for (i = 0;  i<20; i++) LCD_transmit('a'+i, LCD_PIN_RS);
-  LCD_goto(2,5);
-  LCD_clear();
-  LCD_get_bf();
-  LCD_char('b');
-  LCD_char('c');
-
-
-
-
-
+  LCD_test();
 }
 
 
-// Sends command not checking BF flag.
 void LCD_transmit(uint8_t value, uint8_t control) { //value [D7..D0]
   I2C_transmit_4bit((value >> 4)|control);
   I2C_transmit_4bit((value & 0x0F)|control);
-  }
+}
 
 void LCD_cmd(uint8_t value) {
-
   LCD_transmit(value,0);
 }
+

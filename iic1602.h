@@ -115,19 +115,21 @@
 
 #define LCD_ADDR_MASK                   0b1111111
 
-
 uint8_t I2C_map_pins(uint8_t value);
-uint8_t I2C_read_bf_ac(void);
+//uint8_t I2C_read_bf_ac(void);
 void I2C_set_pins(uint8_t *value, uint8_t length);
 void I2C_transmit_4bit(uint8_t value);
 
-uint8_t LCD_get_bf(void);
 
 void LCD_transmit(uint8_t value, uint8_t control);
 
 void LCD_init(void);
 
 void LCD_cmd(uint8_t value);
+
+void LCD_shift_cursor(int8_t value);
+
+void LCD_shift_display(int8_t value);
 
 void LCD_clear(void);
 

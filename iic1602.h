@@ -91,10 +91,10 @@
 
 
 #define LCD_SHIFT_CURSOR_LEFT           0b10000
-#define LCD_SHIFT_CURSOR_RIGHT          0b11000
+#define LCD_SHIFT_CURSOR_RIGHT          0b10100
 
-#define LCD_SHIFT_DISPLAY_LEFT          0b10000
-#define LCD_SHIFT_DISPLAY_RIGHT         0b10100
+#define LCD_SHIFT_DISPLAY_LEFT          0b11000
+#define LCD_SHIFT_DISPLAY_RIGHT         0b11100
 
 
 #define LCD_FUNCTIONSET_DATALENGTH_8BIT 0b110000
@@ -127,6 +127,10 @@ void LCD_init(void);
 
 void LCD_cmd(uint8_t value);
 
+void LCD_test(void);
+
+void LCD_shift_cmd(int8_t value, uint8_t command_l, uint8_t command_r);
+
 void LCD_shift_cursor(int8_t value);
 
 void LCD_shift_display(int8_t value);
@@ -140,5 +144,7 @@ void LCD_char(char value);
 void LCD_goto(uint8_t x, uint8_t y);
 
 uint8_t LCD_read(void);
+
+void LCD_string(char* value);
 
 #endif /* IIC1602_H_ */

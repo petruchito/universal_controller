@@ -52,7 +52,7 @@ void I2C_set_pins(uint8_t *value, uint8_t length) {
   i2cAcquireBus(&I2CD1);
   i2cMasterTransmitTimeout(&I2CD1,LCD_I2C_ADDR,value,length,NULL,0,timeout);
   i2cReleaseBus(&I2CD1);
-  chThdSleepMicroseconds(100);
+  chThdSleepMicroseconds(50);
 }
 
  /* uint8_t I2C_read_bf_ac() {
@@ -141,19 +141,31 @@ void LCD_goto(uint8_t row, uint8_t column) {
 }
 
 void LCD_test() {
+  LCD_string("Testing...");
+  chThdSleepMilliseconds(1000);
+  LCD_string("Clear...");
+  chThdSleepMilliseconds(1000);
+  LCD_clear();
   int i;
   for (i = 0; i < 0x28; i++) {
     LCD_transmit('a' + i, LCD_PIN_RS);
     if (i % 2)
       chThdSleepMilliseconds(100);
   }
-  chThdSleepMilliseconds(2000);
+  for (i = 0x40; i < 0x68; i++) {
+      LCD_transmit('A' + i - 0x40, LCD_PIN_RS);
+      if (i % 2)
+        chThdSleepMilliseconds(100);
+  }
+  chThdSleepMilliseconds(1000);
+  LCD_shift_display(25);
+  chThdSleepMilliseconds(500);
+  LCD_shift_display(-25);
+  chThdSleepMilliseconds(500);
+  LCD_shift_cursor(5);
+  chThdSleepMilliseconds(500);
   LCD_goto(2, 5);
-  LCD_clear();
-  LCD_char('b');
-  LCD_char('c');
-  LCD_string("test");
-}
+ }
 
 void LCD_init(void) {
 
@@ -178,10 +190,8 @@ void LCD_init(void) {
 
   LCD_cmd(LCD_FUNCTIONSET_2LINES|LCD_FUNCTIONSET_5X8FONT);
   LCD_home();
-  LCD_cmd(LCD_OPERATION_DISPLAY_ON|
-          LCD_OPERATION_CURSOR_ON|
-          LCD_OPERATION_CURSORBLINK_ON);
-  LCD_test();
+  LCD_cmd(LCD_OPERATION_DISPLAY_ON);
+  //LCD_test();
 }
 
 

@@ -112,6 +112,7 @@ static THD_FUNCTION(UpdateDisplay, arg) {
         j++;
 
 
+
       }
       updated &= ~UPD_STATUS_BUTTON;
     }
@@ -134,6 +135,7 @@ int main(void) {
 
     qeiStart(&QEID3, &conf);
     qeiEnable(&QEID3);
+    qeiSetMax(&QEID3,200);
 
 
 

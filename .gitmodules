@@ -2,3 +2,6 @@
 	path = ChibiOS
 	url = https://github.com/ChibiOS/ChibiOS.git
 	branch = stable_16.1.x
+[submodule "stm32_qei"]
+	path = stm32_qei
+	url = https://github.com/novalabs/stm32_qei.git

@@ -14,7 +14,6 @@ static uint8_t rxbuf[2];
 #define UPD_STATUS_BTN_DEBOUNCE 0b100
 
 #define BTN_PIN 5
-QEIDriver qeip;
 
 static THD_WORKING_AREA(MAX6675WA, 256);
 
@@ -72,8 +71,8 @@ static THD_FUNCTION(EncoderThread, arg) {
         }
       }
 
-    if(qeiUpdate(&qeip)){
-      encoder_cnt = qeiGetCount(&qeip);
+    if(qeiUpdate(&QEID3)){
+      encoder_cnt = qeiGetCount(&QEID3);
       updated |= UPD_STATUS_POSITION;
     }
 
@@ -133,11 +132,8 @@ int main(void) {
                        .dirinv = QEI_DIRINV_FALSE,
                        .resolution = QEI_SINGLE_EDGE };
 
-    qeip.tim = STM32_TIM3;
-    qeiObjectInit(&qeip); //TODO: make this &QEIP1
-    qeiStart(&qeip, &conf);
-    qeiEnable(&qeip);
-    qeip.tim->ARR=200;
+    qeiStart(&QEID3, &conf);
+    qeiEnable(&QEID3);
 
 
 

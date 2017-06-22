@@ -116,6 +116,7 @@ CSRC = $(STARTUPSRC) \
        $(TESTSRC) \
        main.c \
        iic1602.c \
+       encoder.c \
        $(CHIBIOS)/os/various/syscalls.c      
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global

@@ -55,7 +55,8 @@ void I2C_set_pins(uint8_t *value, uint8_t length) {
   chThdSleepMicroseconds(50);
 }
 
- /* uint8_t I2C_read_bf_ac() {
+ /*
+  uint8_t I2C_read_bf_ac() {
   systime_t timeout = MS2ST(4);
   uint8_t rxbuffer[4] = {0,0,0,0};
 

@@ -2,18 +2,18 @@
 #include <stdio.h>
 #include "hal.h"
 #include "ch.h"
-#include "qei.h"
+#include "encoder.h"
 #include "iic1602.h"
-qeicnt_t encoder_cnt=0;
+uint16_t encoder_cnt=0;
 uint8_t encoder_button = 0;
 uint8_t updated = 0;
 static uint8_t rxbuf[2];
-
 #define UPD_STATUS_BUTTON 0b1
 #define UPD_STATUS_POSITION 0b10
-#define UPD_STATUS_BTN_DEBOUNCE 0b100
+#define UPD_STATUS_BTN_LONG 0b100
 
-#define BTN_PIN 5
+
+
 
 static THD_WORKING_AREA(MAX6675WA, 256);
 
@@ -56,27 +56,25 @@ static THD_WORKING_AREA(EncoderWA, 256);
 
 static THD_FUNCTION(EncoderThread, arg) {
   (void) arg;
-  uint8_t current_button_status = 0;
-
 
   while(TRUE) {
-    current_button_status = palReadPad(GPIOA, BTN_PIN);
-      if (current_button_status ^ encoder_button) {
-        encoder_button = current_button_status;
-        updated |= UPD_STATUS_BTN_DEBOUNCE;
-      } else {
-        if (updated & UPD_STATUS_BTN_DEBOUNCE) {
-          updated |= UPD_STATUS_BUTTON;
-          updated &= ~UPD_STATUS_BTN_DEBOUNCE;
-        }
-      }
 
-    if(qeiUpdate(&QEID3)){
-      encoder_cnt = qeiGetCount(&QEID3);
-      updated |= UPD_STATUS_POSITION;
+    encoder_button_state_t current_button_status = EncoderBtnStatus();
+    if (current_button_status == BTN_DOWN) {
+      updated |= UPD_STATUS_BUTTON;
+    }
+    if (current_button_status == BTN_LONGPRESS) {
+      updated |= UPD_STATUS_BTN_LONG;
     }
 
-    chThdSleepMilliseconds(50);
+
+
+    if(EncoderUpdated()) {
+      updated |= UPD_STATUS_POSITION;
+      encoder_cnt = EncoderValue();
+    }
+
+    chThdSleepMilliseconds(30);
   }
 }
 
@@ -95,12 +93,14 @@ static THD_FUNCTION(UpdateDisplay, arg) {
     if (i>9) i = 0;
     if(updated & UPD_STATUS_POSITION) {
       LCD_goto(1,6);
-        char value[10];
-        sprintf(value,"%9d",encoder_cnt);
-        LCD_string(value);
-        updated &= ~UPD_STATUS_POSITION;
-     }
+      char value[10];
+      sprintf(value,"%9d",encoder_cnt);
+      LCD_string(value);
+      updated &= ~UPD_STATUS_POSITION;
+    }
     if (updated & UPD_STATUS_BUTTON) {
+      LCD_goto(2,10);
+      LCD_string(" ");
       LCD_goto (2,6);
       if (encoder_button) {
         LCD_string("   ");
@@ -116,56 +116,48 @@ static THD_FUNCTION(UpdateDisplay, arg) {
       }
       updated &= ~UPD_STATUS_BUTTON;
     }
+    if (updated & UPD_STATUS_BTN_LONG) {
+      LCD_goto(2,10);
+      LCD_string("L");
+      updated &= ~UPD_STATUS_BTN_LONG;
+    }
     chThdSleepMilliseconds(100);
   }
 }
 
+
+
 int main(void) {
-   halInit();
-    chSysInit();
-    qeiInit();
-
-    palSetPadMode(GPIOA, BTN_PIN, PAL_MODE_INPUT_PULLUP); /* encoder button */
-    palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_PULLUP); /* encoder A */
-    palSetPadMode(GPIOA, 7, PAL_MODE_INPUT_PULLUP); /* encoder B */
-
-    QEIConfig conf = { .mode = QEI_MODE_QUADRATURE,
-                       .dirinv = QEI_DIRINV_FALSE,
-                       .resolution = QEI_SINGLE_EDGE };
-
-    qeiStart(&QEID3, &conf);
-    qeiEnable(&QEID3);
-    qeiSetMax(&QEID3,200);
+  halInit();
+  chSysInit();
+  EncoderInit();
+  chThdCreateStatic(EncoderWA,
+                    sizeof(EncoderWA),
+                    NORMALPRIO,
+                    EncoderThread,
+                    NULL);
 
 
-
-    chThdCreateStatic(EncoderWA,
-                      sizeof(EncoderWA),
-                      NORMALPRIO,
-                      EncoderThread,
-                      NULL);
-
-
-    chThdCreateStatic(MAX6675WA,
-                      sizeof(MAX6675WA),
-                      NORMALPRIO,
-                      MAX6675Thread,
-                      NULL);
+  chThdCreateStatic(MAX6675WA,
+                    sizeof(MAX6675WA),
+                    NORMALPRIO,
+                    MAX6675Thread,
+                    NULL);
 
 
-    chThdCreateStatic(UpdateDisplayWA,
-                       sizeof(UpdateDisplayWA),
-                       LOWPRIO,
-                       UpdateDisplay,
-                       NULL);
+  chThdCreateStatic(UpdateDisplayWA,
+                    sizeof(UpdateDisplayWA),
+                    LOWPRIO,
+                    UpdateDisplay,
+                    NULL);
 
 
-    while(1) {
-      palSetPad(GPIOC, GPIOC_LED);
-      chThdSleepMilliseconds(1000);
-      palClearPad(GPIOC, GPIOC_LED);
-      chThdSleepMilliseconds(1000);
+  while(1) {
+    palSetPad(GPIOC, GPIOC_LED);
+    chThdSleepMilliseconds(1000);
+    palClearPad(GPIOC, GPIOC_LED);
+    chThdSleepMilliseconds(1000);
 
-    }
-    return 0;
+  }
+  return 0;
 }

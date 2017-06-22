@@ -4,10 +4,12 @@
 #include "ch.h"
 #include "encoder.h"
 #include "iic1602.h"
+#include "MAX6675.h"
 uint16_t encoder_cnt=0;
 uint8_t encoder_button = 0;
 uint8_t updated = 0;
-static uint8_t rxbuf[2];
+float temp = 0;
+
 #define UPD_STATUS_BUTTON 0b1
 #define UPD_STATUS_POSITION 0b10
 #define UPD_STATUS_BTN_LONG 0b100
@@ -17,36 +19,13 @@ static uint8_t rxbuf[2];
 
 static THD_WORKING_AREA(MAX6675WA, 256);
 
+
 static THD_FUNCTION(MAX6675Thread, arg) {
   (void) arg;
 
-  static const SPIConfig ls_spicfg = {
-                                      NULL,
-                                      GPIOB,
-                                      12,
-                                      SPI_CR1_BR_2 | SPI_CR1_BR_1  };
-
-
-
-  palSetPadMode(GPIOB, 13, PAL_MODE_STM32_ALTERNATE_PUSHPULL);     /* SCK. */
-  palSetPadMode(GPIOB, 14, PAL_MODE_STM32_ALTERNATE_PUSHPULL);     /* MISO.*/
-  palSetPadMode(GPIOB, 12, PAL_MODE_OUTPUT_PUSHPULL);
-  palSetPad(GPIOB, 12);
-  spiAcquireBus(&SPID2);              /* Acquire ownership of the bus.    */
-  spiStart(&SPID2, &ls_spicfg);       /* Setup transfer parameters.       */
-  spiReleaseBus(&SPID2);              /* Ownership release.               */
-
-
+  MAX6675Init();
   while(TRUE) {
-    spiAcquireBus(&SPID2);              /* Acquire ownership of the bus.    */
-    spiSelect(&SPID2);                  /* Slave Select assertion.          */
-    spiReceive(&SPID2, 2, rxbuf);
-    spiUnselect(&SPID2);                /* Slave Select de-assertion.       */
-    spiReleaseBus(&SPID2);              /* Ownership release.               */
-    uint16_t i = 0;
-    i = (rxbuf[0]<<8);
-    i|=(rxbuf[1]);
-    i=i>>3; // *0.25degC
+    temp = MAX6675Read();
     chThdSleepMilliseconds(500);
   }
 }
@@ -78,24 +57,27 @@ static THD_FUNCTION(EncoderThread, arg) {
   }
 }
 
-static THD_WORKING_AREA(UpdateDisplayWA, 400);
+static THD_WORKING_AREA(UpdateDisplayWA, 1000);
 
 static THD_FUNCTION(UpdateDisplay, arg) {
   (void) arg;
   chRegSetThreadName("UpdateDisplay");
   LCD_init();
-  LCD_string("Running...");
+  //LCD_string("Running...");
   int i,j = 0;
   while (1) {
+    LCD_goto(1,0);
+    char tempstr[6];
+    sprintf(tempstr, "%3.2f", temp);
+    LCD_string(tempstr);
     LCD_goto(2,0);
     LCD_char('0'+i);
     i++;
     if (i>9) i = 0;
     if(updated & UPD_STATUS_POSITION) {
       LCD_goto(1,6);
-      char value[10];
-      sprintf(value,"%9d",encoder_cnt);
-      LCD_string(value);
+      sprintf(tempstr,"%9d",encoder_cnt);
+      LCD_string(tempstr);
       updated &= ~UPD_STATUS_POSITION;
     }
     if (updated & UPD_STATUS_BUTTON) {

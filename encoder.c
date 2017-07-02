@@ -18,7 +18,7 @@ void EncoderInit() {
                     .resolution = QEI_SINGLE_EDGE};
   qeiStart(&QEID3, &conf);
   qeiEnable(&QEID3);
-  qeiSetMax(&QEID3, 200);
+  qeiSetMax(&QEID3, 2);
 }
 
 
@@ -66,18 +66,6 @@ encoder_button_state_t EncoderBtnStatus() {
     }
   }
 
-/*
-  if (button_state == BTN_DOWN && longpress_counter) {
-    if (!(--longpress_counter)) return BTN_LONGPRESS;
-  }
-
-  if ((button_state == BTN_UP) && (last_button_state == BTN_DOWN)) {
-    last_button_state == BTN_UP;
-    return BTN_DOWN;
-  }
-
-  if (button_state == BTN_UP) last_button_state == BTN_UP;
-*/
   return BTN_UP;
 
 }
@@ -88,5 +76,9 @@ uint8_t EncoderUpdated() {
 
 uint16_t EncoderValue() {
   return (uint16_t) qeiGetCount(&QEID3);
+}
+
+void EncoderSetMax(uint16_t value) {
+  qeiSetMax(&QEID3, value);
 }
 

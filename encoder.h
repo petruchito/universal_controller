@@ -26,5 +26,5 @@ encoder_button_state_t EncoderBtnStatus(void);
 void EncoderInit(void);
 uint8_t EncoderUpdated(void);
 uint16_t EncoderValue(void);
-
+void EncoderSetMax(uint16_t value);
 #endif /* ENCODER_H_ */

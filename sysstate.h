@@ -17,9 +17,7 @@ typedef enum {
   UPD_SET_TEMPERATURE = 0b100,
   UPD_TEMPERATURE = 0b1000,
   UPD_PWM = 0b1<<4,
-  UPD_SET_PWM = 0b10<<4,
-  UPD_ARR = 0b100<<4,
-  UPD_CNT = 0b1000<<4
+  UPD_SET_PWM = 0b10<<4
 } state_updated_t;
 
 typedef struct SystemState {

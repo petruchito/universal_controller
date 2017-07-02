@@ -27,4 +27,6 @@ void EncoderInit(void);
 uint8_t EncoderUpdated(void);
 uint16_t EncoderValue(void);
 void EncoderSetMax(uint16_t value);
+void EncoderSetCnt(uint16_t value);
+void EncoderSetup(uint16_t max, uint16_t cnt);
 #endif /* ENCODER_H_ */

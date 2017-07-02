@@ -82,3 +82,12 @@ void EncoderSetMax(uint16_t value) {
   qeiSetMax(&QEID3, value);
 }
 
+void EncoderSetCnt(uint16_t value) {
+  qeiSetCount(&QEID3, value);
+}
+
+void EncoderSetup(uint16_t max, uint16_t cnt) {
+  qeiSetMax(&QEID3, max);
+  qeiSetCount(&QEID3, cnt);
+}
+

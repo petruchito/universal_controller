@@ -35,6 +35,7 @@ typedef struct {
   uint8_t selected;
   uint16_t encoder_cnt,encoder_arr;
   interface_item_type_t type;
+  void (*RenderText)(sys_state_t *state, uint8_t i);
   void (*OnPress)(sys_state_t *state);
   void (*OnLongPress)(sys_state_t *state);
   void (*OnEncoder)(sys_state_t *state);
@@ -42,10 +43,13 @@ typedef struct {
 } interface_t;
 
 uint8_t RenderInterface(sys_state_t *state);
+
+void RenderSettingText(sys_state_t *state, uint8_t i);
 void HeatingScreen(sys_state_t *state);
 void AdjustScreen(sys_state_t *state);
 void SettingsScreen(sys_state_t *state);
 void ReturnFromSettingsScreen(sys_state_t *state);
 void SettingsOnEncoder(sys_state_t *state);
+void AdjustOnEncoder(sys_state_t *state);
 
 #endif /* INTERFACE_H_ */

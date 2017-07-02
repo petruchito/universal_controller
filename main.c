@@ -34,11 +34,6 @@ static THD_FUNCTION(EncoderThread, arg) {
 
   while(TRUE) {
 
-    if(system_state.updated & UPD_ARR) {
-      EncoderSetMax(system_state.interface->encoder_arr);
-      system_state.updated &= ~(UPD_ARR);
-    }
-
     encoder_button_state_t btn = EncoderBtnStatus();
     if ((btn == BTN_DOWN) || (btn == BTN_LONGPRESS)) {
       chMtxLock(&system_state.mutex);
@@ -78,11 +73,14 @@ static THD_FUNCTION(UpdateDisplay, arg) {
 
     system_state.interface = current_sate.interface;
     system_state.return_interface = current_sate.return_interface;
-    if(current_sate.updated & UPD_ARR) {
+
+    if(current_sate.updated & UPD_SET_TEMPERATURE) {
       chMtxLock(&system_state.mutex);
-      system_state.updated|=current_sate.updated & UPD_ARR;
+      system_state.updated|=current_sate.updated & UPD_SET_TEMPERATURE;
+      system_state.set_temperature = current_sate.set_temperature;
       chMtxUnlock(&system_state.mutex);
     }
+
     while (!system_state.updated) chThdSleepMilliseconds(100);
   }
 }

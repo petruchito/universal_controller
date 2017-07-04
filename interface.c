@@ -49,14 +49,14 @@ static interface_t settings_screen = {
                                                 {.text = "MENU4"}
                                       }
 };
-void RenderSettingText(sys_state_t *state, uint8_t i) {
+void RenderSettingText(sys_state_t *state, uint8_t line) {
   char *mark = " ";
-  if (!i) mark = ">";
-  LCD_goto(i+1,0);
+  if (!line) mark = ">";
+  LCD_goto(line+1,0);
   LCD_string(mark);
-  LCD_string(state->interface->items[state->interface->selected+i].text);
+  LCD_string(state->interface->items[state->interface->selected+line].text);
 
-  if (i == 0
+  if (line == 0
       && state->interface->selected == state->interface->encoder_arr) {
     LCD_goto(2,0);
     LCD_string(" ");
@@ -73,8 +73,6 @@ void AdjustScreen(sys_state_t *state) {
   state->interface = &adjust_screen;
   state->interface->redraw = TRUE;
   EncoderSetup(state->interface->encoder_arr,state->set_temperature/10);
-//  EncoderSetMax(state->interface->encoder_arr);
-//  EncoderSetCnt(state->set_temperature/10);
 
 }
 
@@ -83,8 +81,6 @@ void SettingsScreen(sys_state_t *state) {
   state->interface = &settings_screen;
   state->interface->redraw = TRUE;
   EncoderSetup(state->interface->encoder_arr,state->interface->encoder_cnt);
-//  EncoderSetMax(state->interface->encoder_arr);
-//  EncoderSetCnt(state->interface->encoder_cnt);
 
 }
 
@@ -95,8 +91,7 @@ void ReturnFromSettingsScreen(sys_state_t *state) {
   state->interface->redraw = TRUE;
   if (state->interface == &adjust_screen) {
     EncoderSetup(state->interface->encoder_arr,state->set_temperature/10);
-//    EncoderSetMax(state->interface->encoder_arr);
-//    EncoderSetCnt(state->set_temperature/10);
+
   }
 
 }
@@ -112,29 +107,24 @@ void AdjustOnEncoder(sys_state_t *state) {
 
 uint8_t RenderInterface(sys_state_t *state)  {
 
-//  uint8_t redraw = 0;
 
   if (!state->interface) {
     AdjustScreen(state);
-//    redraw = TRUE;
   }
 
   //  determine key presses
 
   if (state->updated & UPD_BUTTON && state->encoder_button == BTN_DOWN) {
     if(state->interface->OnPress) state->interface->OnPress(state);
-    //redraw = TRUE;
   }
 
   if (state->updated & UPD_BUTTON && state->encoder_button == BTN_LONGPRESS) {
     if(state->interface->OnLongPress) state->interface->OnLongPress(state);
-    //redraw = TRUE;
   }
 
   if (state->updated & UPD_ENCODER) {
     if (state->interface->OnEncoder) {
       state->interface->OnEncoder(state);
-      //redraw = TRUE;
     }
 
   }

@@ -11,7 +11,7 @@
 #define SCR_ADJUST 0
 #define SCR_HEATING 1
 #define SCR_MENU 2
-
+#define MAX_INTERFACE_DEPTH 3
 typedef struct SystemState sys_state_t;
 
 typedef enum {

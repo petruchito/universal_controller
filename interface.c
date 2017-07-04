@@ -79,8 +79,7 @@ void AdjustScreen(sys_state_t *state) {
 }
 
 void SettingsScreen(sys_state_t *state) {
-
-  state->return_interface = state->interface;
+  state->return_interface[state->return_interfaces_top++] = state->interface;
   state->interface = &settings_screen;
   state->interface->redraw = TRUE;
   EncoderSetup(state->interface->encoder_arr,state->interface->encoder_cnt);
@@ -91,14 +90,15 @@ void SettingsScreen(sys_state_t *state) {
 
 void ReturnFromSettingsScreen(sys_state_t *state) {
   state->interface->selected = 0;
-  state->interface = state->return_interface;
+  state->interface = state->return_interface[--state->return_interfaces_top];
+  state->return_interface[state->return_interfaces_top] = 0;
   state->interface->redraw = TRUE;
   if (state->interface == &adjust_screen) {
     EncoderSetup(state->interface->encoder_arr,state->set_temperature/10);
 //    EncoderSetMax(state->interface->encoder_arr);
 //    EncoderSetCnt(state->set_temperature/10);
   }
-  state->return_interface = 0;
+
 }
 
 void SettingsOnEncoder(sys_state_t *state) {

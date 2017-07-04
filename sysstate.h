@@ -26,7 +26,8 @@ typedef struct SystemState {
   float temperature;
   uint16_t set_temperature;
   uint8_t pwm;
-  interface_t *interface, *return_interface;
+  interface_t *interface, *return_interface[MAX_INTERFACE_DEPTH];
+  uint8_t return_interfaces_top;
   state_updated_t updated;
   mutex_t mutex;
 } sys_state_t;

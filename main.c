@@ -5,6 +5,7 @@
 #include "MAX6675.h"
 #include "interface.h"
 #include "sysstate.h"
+#include <string.h>
 
 static thread_t *update_display_thd;
 
@@ -71,8 +72,12 @@ static THD_FUNCTION(UpdateDisplay, arg) {
 
     RenderInterface(&current_sate);
 
+    system_state.return_interfaces_top = current_sate.return_interfaces_top;
+
     system_state.interface = current_sate.interface;
-    system_state.return_interface = current_sate.return_interface;
+    memcpy(system_state.return_interface,
+           current_sate.return_interface,
+           sizeof(current_sate.return_interface));
 
     if(current_sate.updated & UPD_SET_TEMPERATURE) {
       chMtxLock(&system_state.mutex);

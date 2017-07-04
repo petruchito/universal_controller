@@ -66,10 +66,12 @@ void RenderSettingText(sys_state_t *state, uint8_t i) {
 
 void HeatingScreen(sys_state_t *state) {
   state->interface = &heating_screen;
+  state->interface->redraw = TRUE;
 }
 
 void AdjustScreen(sys_state_t *state) {
   state->interface = &adjust_screen;
+  state->interface->redraw = TRUE;
   EncoderSetup(state->interface->encoder_arr,state->set_temperature/10);
 //  EncoderSetMax(state->interface->encoder_arr);
 //  EncoderSetCnt(state->set_temperature/10);
@@ -80,6 +82,7 @@ void SettingsScreen(sys_state_t *state) {
 
   state->return_interface = state->interface;
   state->interface = &settings_screen;
+  state->interface->redraw = TRUE;
   EncoderSetup(state->interface->encoder_arr,state->interface->encoder_cnt);
 //  EncoderSetMax(state->interface->encoder_arr);
 //  EncoderSetCnt(state->interface->encoder_cnt);
@@ -89,6 +92,7 @@ void SettingsScreen(sys_state_t *state) {
 void ReturnFromSettingsScreen(sys_state_t *state) {
   state->interface->selected = 0;
   state->interface = state->return_interface;
+  state->interface->redraw = TRUE;
   if (state->interface == &adjust_screen) {
     EncoderSetup(state->interface->encoder_arr,state->set_temperature/10);
 //    EncoderSetMax(state->interface->encoder_arr);
@@ -108,40 +112,40 @@ void AdjustOnEncoder(sys_state_t *state) {
 
 uint8_t RenderInterface(sys_state_t *state)  {
 
-  uint8_t redraw = 0;
+//  uint8_t redraw = 0;
 
   if (!state->interface) {
     AdjustScreen(state);
-    redraw = TRUE;
+//    redraw = TRUE;
   }
 
   //  determine key presses
 
   if (state->updated & UPD_BUTTON && state->encoder_button == BTN_DOWN) {
     if(state->interface->OnPress) state->interface->OnPress(state);
-    redraw = TRUE;
+    //redraw = TRUE;
   }
 
   if (state->updated & UPD_BUTTON && state->encoder_button == BTN_LONGPRESS) {
     if(state->interface->OnLongPress) state->interface->OnLongPress(state);
-    redraw = TRUE;
+    //redraw = TRUE;
   }
 
   if (state->updated & UPD_ENCODER) {
     if (state->interface->OnEncoder) {
       state->interface->OnEncoder(state);
-      redraw = TRUE;
+      //redraw = TRUE;
     }
 
   }
 
   //  draw interface
-  if (redraw) LCD_clear();
+  if (state->interface->redraw) LCD_clear();
 
   uint8_t i;
   for (i=0;i<LCD_ROW_SIZE;i++) {
     if (state->interface->items[state->interface->selected+i].text
-        && ( redraw || (state->updated & UPD_ENCODER) )) {
+        && ( state->interface->redraw || (state->updated & UPD_ENCODER) )) {
       if (state->interface->RenderText) {
         RenderSettingText(state, i);
       } else {
@@ -151,7 +155,7 @@ uint8_t RenderInterface(sys_state_t *state)  {
     }
 
     if (state->interface->items[state->interface->selected+i].features & SHOW_TEMPERATURE
-        && ( redraw || (state->updated & UPD_TEMPERATURE) )) {
+        && ( state->interface->redraw || (state->updated & UPD_TEMPERATURE) )) {
       LCD_goto(i+1,7);
       char tempstr[10];
       sprintf(tempstr, "%7.2f\337C", state->temperature);
@@ -159,7 +163,7 @@ uint8_t RenderInterface(sys_state_t *state)  {
     }
 
     if (state->interface->items[state->interface->selected+i].features & SHOW_SET_VALUE
-        && ( redraw || (state->updated & UPD_SET_TEMPERATURE) )) {
+        && ( state->interface->redraw || (state->updated & UPD_SET_TEMPERATURE) )) {
       //TODO: PWM MODE
       LCD_goto(i+1,0);
       char tempstr[6];
@@ -168,13 +172,13 @@ uint8_t RenderInterface(sys_state_t *state)  {
     }
 
     if (state->interface->items[state->interface->selected+i].features & SHOW_PWM
-        && ( redraw || (state->updated & UPD_PWM) )) {
+        && ( state->interface->redraw || (state->updated & UPD_PWM) )) {
       LCD_goto(i+1,12);
       char tempstr[5];
       sprintf(tempstr, "%3d%%", state->pwm);
       LCD_string(tempstr);
     }
   } //for(;i<LCD_ROW_SIZE...
-  redraw = FALSE;
+  state->interface->redraw = FALSE;
   return 0;
 }

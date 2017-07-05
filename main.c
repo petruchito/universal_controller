@@ -73,7 +73,6 @@ static THD_FUNCTION(UpdateDisplay, arg) {
     RenderInterface(&current_sate);
 
     system_state.return_interfaces_top = current_sate.return_interfaces_top;
-
     system_state.interface = current_sate.interface;
     memcpy(system_state.return_interface,
            current_sate.return_interface,

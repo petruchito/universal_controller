@@ -27,6 +27,10 @@ typedef enum {
 
 typedef struct {
   interface_features_t features;
+  void (*RenderItem)(sys_state_t *state, uint8_t line);
+  void (*OnPress)(sys_state_t *state);
+  void (*OnLongPress)(sys_state_t *state);
+  void (*OnEncoder)(sys_state_t *state);
   char *text;
 } menu_item_t;
 
@@ -35,7 +39,7 @@ typedef struct {
   uint8_t selected;
   uint16_t encoder_cnt,encoder_arr;
   interface_item_type_t type;
-  void (*RenderText)(sys_state_t *state, uint8_t i);
+  void (*Render)(sys_state_t *state, uint8_t line);
   void (*OnPress)(sys_state_t *state);
   void (*OnLongPress)(sys_state_t *state);
   void (*OnEncoder)(sys_state_t *state);
@@ -44,7 +48,12 @@ typedef struct {
 
 uint8_t RenderInterface(sys_state_t *state);
 
-void RenderSettingText(sys_state_t *state, uint8_t i);
+void EnterSubInterface(sys_state_t *state, interface_t *new_interface);
+void ExitSubInterface(sys_state_t *state);
+void AdjustKp (sys_state_t *state);
+void ReturnToMenu(sys_state_t *state);
+void RenderFeatures(sys_state_t* state, uint8_t line);
+void RenderMenuItems(sys_state_t *state, uint8_t line);
 void HeatingScreen(sys_state_t *state);
 void AdjustScreen(sys_state_t *state);
 void SettingsScreen(sys_state_t *state);

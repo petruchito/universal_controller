@@ -21,7 +21,9 @@ typedef enum {
 } state_updated_t;
 
 typedef struct SystemState {
-  float kp, ki, kd;
+  //TODO: change this
+  float f_param;
+  uint8_t i_param;
   uint16_t encoder_cnt;
   encoder_button_state_t encoder_button;
   float temperature;

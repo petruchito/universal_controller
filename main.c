@@ -9,7 +9,9 @@
 
 static thread_t *update_display_thd;
 
-static sys_state_t system_state;
+static sys_state_t system_state = {
+                                   .f_param = .5f
+};
 
 static THD_WORKING_AREA(MAX6675WA, 256);
 
@@ -57,7 +59,7 @@ static THD_FUNCTION(EncoderThread, arg) {
 
 
 
-static THD_WORKING_AREA(UpdateDisplayWA, 1500);
+static THD_WORKING_AREA(UpdateDisplayWA, 2500);
 
 static THD_FUNCTION(UpdateDisplay, arg) {
   (void) arg;
@@ -71,6 +73,9 @@ static THD_FUNCTION(UpdateDisplay, arg) {
     chMtxUnlock(&system_state.mutex);
 
     RenderInterface(&current_sate);
+
+    system_state.f_param = current_sate.f_param;
+    //TODO: add consistency mutex!
 
     system_state.return_interfaces_top = current_sate.return_interfaces_top;
     system_state.interface = current_sate.interface;

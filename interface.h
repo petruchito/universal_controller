@@ -35,11 +35,19 @@ typedef struct {
 } menu_item_t;
 
 typedef struct {
+  void *parameter;
+  void *max;
+  void *min;
+} parameter_struct_t;
+
+typedef struct {
   uint8_t redraw;
   uint8_t selected;
+  parameter_struct_t parameter_settings;
   uint16_t encoder_cnt,encoder_arr;
   interface_item_type_t type;
   void (*Render)(sys_state_t *state, uint8_t line);
+  void (*OnLoad)(sys_state_t *state);
   void (*OnPress)(sys_state_t *state);
   void (*OnLongPress)(sys_state_t *state);
   void (*OnEncoder)(sys_state_t *state);
@@ -48,9 +56,18 @@ typedef struct {
 
 uint8_t RenderInterface(sys_state_t *state);
 
+void MenuInterfaceOnLoad(sys_state_t *state);
+void SettingsScreenOnLoad(sys_state_t *state);
+void AdjustScreenOnLoad(sys_state_t *state);
+void AdjustFloatScreenOnEncoder(sys_state_t *state);
+
 void EnterSubInterface(sys_state_t *state, interface_t *new_interface);
 void ExitSubInterface(sys_state_t *state);
-void AdjustKp (sys_state_t *state);
+
+void AdjustFloat (sys_state_t *state);
+void RenderAdjustFloatScreen(sys_state_t *state, uint8_t line);
+void AdjustFloatScreenOnLoad(sys_state_t *state);
+
 void ReturnToMenu(sys_state_t *state);
 void RenderFeatures(sys_state_t* state, uint8_t line);
 void RenderMenuItems(sys_state_t *state, uint8_t line);

@@ -90,7 +90,7 @@ void RenderAdjustFloatScreen(sys_state_t *state, uint8_t line) {
   } else {
     LCD_goto(2,0);
     char tempstr[10];
-    sprintf(tempstr, "<%7.2f>", *((float *)state->interface->parameter_settings.parameter) );
+    sprintf(tempstr, "      <%3.2f>", *((float *)state->interface->parameter_settings.parameter) );
     LCD_string(tempstr);
   }
 }

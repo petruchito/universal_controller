@@ -38,10 +38,9 @@ encoder_button_state_t EncoderBtnStatus() {
     return BTN_DEBOUNCE;
   }
 
-//  if ( (button_state == BTN_DEBOUNCE) && debounce_counter ) {
-//    if (--debounce_counter) return BTN_DEBOUNCE;
-//  }
-
+  if ( (button_state == BTN_DEBOUNCE) && debounce_counter ) {
+    if (--debounce_counter) return BTN_DEBOUNCE;
+  }
 
   // current_pin_state is debounced from this point
 
@@ -67,7 +66,6 @@ encoder_button_state_t EncoderBtnStatus() {
   }
 
   return BTN_UP;
-
 }
 
 uint8_t EncoderUpdated() {

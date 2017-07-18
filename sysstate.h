@@ -10,6 +10,7 @@
 
 #include "encoder.h"
 #include "interface.h"
+#include "pid.h"
 
 typedef enum {
   UPD_BUTTON = 0b1,
@@ -23,6 +24,8 @@ typedef enum {
 typedef struct SystemState {
   //TODO: change this
   float f_param;
+  pid_params_t pid_params;
+
   uint8_t i_param;
   uint16_t encoder_cnt;
   encoder_button_state_t encoder_button;

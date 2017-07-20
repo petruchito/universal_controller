@@ -13,7 +13,7 @@ uint8_t backlight = 1;
 static const I2CConfig i2cfg = {
     OPMODE_I2C,
     100000,
-    FAST_DUTY_CYCLE_2,
+    STD_DUTY_CYCLE
 };
 
 uint8_t I2C_map_pins(uint8_t value) {
@@ -48,7 +48,7 @@ uint8_t I2C_unmap_pins(uint8_t value) {
 
 
 void I2C_set_pins(uint8_t *value, uint8_t length) {
-  systime_t timeout = MS2ST(4);
+  systime_t timeout = MS2ST(40);
   i2cAcquireBus(&I2CD1);
   i2cMasterTransmitTimeout(&I2CD1,LCD_I2C_ADDR,value,length,NULL,0,timeout);
   i2cReleaseBus(&I2CD1);

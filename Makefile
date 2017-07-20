@@ -120,6 +120,7 @@ CSRC = $(STARTUPSRC) \
        MAX6675.c \
        interface.c \
        pid.c \
+       PWMout.c \
        $(CHIBIOS)/os/various/syscalls.c      
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global

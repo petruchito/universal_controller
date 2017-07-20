@@ -5,16 +5,44 @@
 #include "MAX6675.h"
 #include "interface.h"
 #include "sysstate.h"
+#include "PWMout.h"
+#include "pid.h"
 #include <string.h>
 
 static thread_t *update_display_thd;
 
 static sys_state_t system_state = {
-                                   .f_param = .5f
+                                   .f_param = .5f,
+                                   .pwm = 0,
+                                   .pid_params = {
+                                                  //todo: load this from eeprom
+                                                  .out_max = 100,
+                                                  .out_min = 0,
+                                                  .kc = 1,
+                                                  .ti = 10,
+                                                  .td = 1
+                                   }
 };
 
-static THD_WORKING_AREA(MAX6675WA, 256);
+static THD_WORKING_AREA(PIDWA, 256);
 
+static THD_FUNCTION(PIDThread, arg) {
+  (void) arg;
+  PWMInit();
+  system_state.pid_params.enabled = TRUE;
+  while (TRUE) {
+
+    if (system_state.pid_params.enabled) {
+      system_state.pwm = PidTick(&system_state.pid_params,
+              system_state.set_temperature,
+              system_state.temperature);
+      system_state.updated |= UPD_PWM;
+    }
+    PWMSetDutyCycle(2550000/system_state.pwm);
+    chThdSleepMilliseconds(1000);
+  }
+}
+static THD_WORKING_AREA(MAX6675WA, 256);
 
 static THD_FUNCTION(MAX6675Thread, arg) {
   (void) arg;
@@ -101,6 +129,13 @@ int main(void) {
   chSysInit();
   chMtxObjectInit(&system_state.mutex);
   EncoderInit();
+
+  chThdCreateStatic(PIDWA,
+                    sizeof(PIDWA),
+                    NORMALPRIO,
+                    PIDThread,
+                    NULL);
+
   chThdCreateStatic(EncoderWA,
                     sizeof(EncoderWA),
                     NORMALPRIO,

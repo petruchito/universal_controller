@@ -12,6 +12,6 @@
 
 void PWMInit(void);
 
-void PWMSetDutyCycle (uint16_t duty);
+void PWMSetDutyCycle (uint8_t duty);
 
 #endif /* PWMOUT_H_ */

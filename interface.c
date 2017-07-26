@@ -113,6 +113,7 @@ void RenderMenuItems(sys_state_t *state, uint8_t line) {
 
 void HeatingScreen(sys_state_t *state) {
   state->interface = &heating_screen;
+  state->pid_params.enabled = TRUE;
   state->interface->redraw = TRUE;
 }
 
@@ -124,10 +125,12 @@ void AdjustScreen(sys_state_t *state) {
 
 void AdjustScreenOnLoad(sys_state_t *state) {
   EncoderSetup(state->interface->encoder_arr,state->set_temperature/10);
+  state->pid_params.enabled = FALSE;
 }
 
 void SettingsScreenOnLoad(sys_state_t *state) {
   EncoderSetup(state->interface->encoder_arr,state->interface->encoder_cnt);
+  state->pid_params.enabled = FALSE;
 }
 
 void MenuInterfaceOnLoad(sys_state_t *state) {
@@ -135,13 +138,15 @@ void MenuInterfaceOnLoad(sys_state_t *state) {
 }
 
 void EnterSubInterface(sys_state_t *state, interface_t *new_interface) {
+  if (state->interface->OnUnload) state->interface->OnUnload(state);
   state->return_interface[state->return_interfaces_top++] = state->interface;
-    state->interface = new_interface;
-    if (state->interface->OnLoad) state->interface->OnLoad(state);
-    state->interface->redraw = TRUE;
+  state->interface = new_interface;
+  if (state->interface->OnLoad) state->interface->OnLoad(state);
+  state->interface->redraw = TRUE;
 }
 
 void ExitSubInterface(sys_state_t *state) {
+  if (state->interface->OnUnload) state->interface->OnUnload(state);
   state->interface->selected = 0;
   state->interface = state->return_interface[--state->return_interfaces_top];
   state->return_interface[state->return_interfaces_top] = 0;
@@ -151,12 +156,10 @@ void ExitSubInterface(sys_state_t *state) {
 
 void SettingsScreen(sys_state_t *state) {
   EnterSubInterface(state,&settings_screen);
-  //EncoderSetup(state->interface->encoder_arr,state->interface->encoder_cnt);
 }
 
 void ReturnToMenu(sys_state_t *state) {
   ExitSubInterface(state);
-//  EncoderSetup(state->interface->encoder_arr, state->interface->selected);
 }
 
 
@@ -180,16 +183,16 @@ void RenderFeatures(sys_state_t* state, uint8_t line) {
       LCD_string(
           state->interface->items[state->interface->selected + line].text);
   }
-  if (state->interface->items[state->interface->selected + line].features
-      & SHOW_TEMPERATURE
+  if ((state->interface->items[state->interface->selected + line].features
+      & SHOW_TEMPERATURE )
       && (state->interface->redraw || (state->updated & UPD_TEMPERATURE))) {
     LCD_goto(line + 1, 7);
     char tempstr[10];
     sprintf(tempstr, "%7.2f\337C", state->temperature);
     LCD_string(tempstr);
   }
-  if (state->interface->items[state->interface->selected + line].features
-      & SHOW_SET_VALUE
+  if ((state->interface->items[state->interface->selected + line].features
+      & SHOW_SET_VALUE)
       && (state->interface->redraw || (state->updated & UPD_SET_TEMPERATURE))) {
     //TODO: PWM MODE
     LCD_goto(line + 1, 0);
@@ -197,8 +200,8 @@ void RenderFeatures(sys_state_t* state, uint8_t line) {
     sprintf(tempstr, "%3d\337C", state->set_temperature);
     LCD_string(tempstr);
   }
-  if (state->interface->items[state->interface->selected + line].features
-      & SHOW_PWM && (state->interface->redraw || (state->updated & UPD_PWM))) {
+  if ((state->interface->items[state->interface->selected + line].features
+      & SHOW_PWM) && (state->interface->redraw || (state->updated & UPD_PWM))) {
     LCD_goto(line + 1, 12);
     char tempstr[5];
     sprintf(tempstr, "%3d%%", state->pwm);
@@ -215,7 +218,7 @@ uint8_t RenderInterface(sys_state_t *state)  {
 
 //  determine key presses
 
-  if (state->updated & UPD_BUTTON && state->encoder_button == BTN_DOWN) {
+  if (( state->updated & UPD_BUTTON ) && state->encoder_button == BTN_DOWN) {
     if (state->interface->items[state->interface->selected].OnPress) {
       state->interface->items[state->interface->selected].OnPress(state);
     } else if (state->interface->OnPress) {
@@ -223,7 +226,7 @@ uint8_t RenderInterface(sys_state_t *state)  {
     }
   }
 
-  if (state->updated & UPD_BUTTON && state->encoder_button == BTN_LONGPRESS) {
+  if (( state->updated & UPD_BUTTON ) && state->encoder_button == BTN_LONGPRESS) {
     if (state->interface->items[state->interface->selected].OnLongPress) {
       state->interface->items[state->interface->selected].OnLongPress(state);
     } else if(state->interface->OnLongPress) {

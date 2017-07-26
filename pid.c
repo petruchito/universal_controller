@@ -12,7 +12,7 @@ static float i = 0, last_pv = 0;
 uint8_t PidTick(pid_params_t *params, uint16_t sv, float pv) {
   float e = sv-pv;
   float p = e * params->kc;
-  //i += (1/params->ti) * e;
+  i += (1/params->ti) * e;
   float d = params->td * (pv - last_pv);
   last_pv = pv;
 

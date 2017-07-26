@@ -14,7 +14,6 @@ typedef struct {
   uint8_t enabled;
 } pid_params_t;
 
-
 uint8_t PidTick(pid_params_t *params, uint16_t sv, float pv);
 void PidResetIntegral(void);
 

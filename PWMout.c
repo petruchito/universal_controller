@@ -8,7 +8,6 @@
 #include "PWMout.h"
 
 void PWMInit() {
-
   palSetPadMode(GPIOB, PWM_PIN , PAL_MODE_STM32_ALTERNATE_PUSHPULL);
   static const PWMConfig pwm_config1 = {
                                        .frequency = 10000,
@@ -23,11 +22,9 @@ void PWMInit() {
                                        .cr2 = 0,
                                        .dier = 0
   };
-
   pwmStart(&PWMD4,&pwm_config1);
-
 }
 
-void PWMSetDutyCycle (uint16_t duty) {
-  pwmEnableChannel(&PWMD4, 2, duty);
+void PWMSetDutyCycle (uint8_t duty) {
+  pwmEnableChannel(&PWMD4, 2, (uint16_t)2550000/duty);
 }

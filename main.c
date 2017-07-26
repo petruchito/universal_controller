@@ -29,16 +29,16 @@ static THD_WORKING_AREA(PIDWA, 256);
 static THD_FUNCTION(PIDThread, arg) {
   (void) arg;
   PWMInit();
-  system_state.pid_params.enabled = TRUE;
   while (TRUE) {
-
     if (system_state.pid_params.enabled) {
       system_state.pwm = PidTick(&system_state.pid_params,
               system_state.set_temperature,
               system_state.temperature);
       system_state.updated |= UPD_PWM;
+    } else {
+      PidResetIntegral();
     }
-    PWMSetDutyCycle(2550000/system_state.pwm);
+    PWMSetDutyCycle(system_state.pwm);
     chThdSleepMilliseconds(1000);
   }
 }
@@ -103,6 +103,7 @@ static THD_FUNCTION(UpdateDisplay, arg) {
     RenderInterface(&current_sate);
 
     system_state.f_param = current_sate.f_param;
+    system_state.pid_params = current_sate.pid_params;
     //TODO: add consistency mutex!
 
     system_state.return_interfaces_top = current_sate.return_interfaces_top;
@@ -113,7 +114,7 @@ static THD_FUNCTION(UpdateDisplay, arg) {
 
     if(current_sate.updated & UPD_SET_TEMPERATURE) {
       chMtxLock(&system_state.mutex);
-      system_state.updated|=current_sate.updated & UPD_SET_TEMPERATURE;
+      system_state.updated|= (current_sate.updated & UPD_SET_TEMPERATURE);
       system_state.set_temperature = current_sate.set_temperature;
       chMtxUnlock(&system_state.mutex);
     }

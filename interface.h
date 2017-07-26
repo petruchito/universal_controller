@@ -48,6 +48,7 @@ typedef struct {
   interface_item_type_t type;
   void (*Render)(sys_state_t *state, uint8_t line);
   void (*OnLoad)(sys_state_t *state);
+  void (*OnUnload)(sys_state_t *state);
   void (*OnPress)(sys_state_t *state);
   void (*OnLongPress)(sys_state_t *state);
   void (*OnEncoder)(sys_state_t *state);

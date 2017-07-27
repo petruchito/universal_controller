@@ -29,4 +29,5 @@ uint8_t PidTick(pid_params_t *params, uint16_t sv, float pv) {
 
 void PidResetIntegral() {
   i = 0;
+  last_pv = 0;
 }

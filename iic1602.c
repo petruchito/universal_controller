@@ -136,6 +136,7 @@ void LCD_string(char* value) {
 
 void LCD_goto(uint8_t row, uint8_t column) {
   uint8_t position = column;
+  row++;
   if (row == 2) position += 0x40;
   position &= LCD_DDRAM_ADDR_MASK;
   LCD_cmd(LCD_DDRAM_CMD | position);

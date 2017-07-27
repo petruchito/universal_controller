@@ -11,7 +11,7 @@
 
 static thread_t *update_display_thd;
 
-static sys_state_t system_state = {
+sys_state_t system_state = {
                                    .f_param = .5f,
                                    .pwm = 0,
                                    .pid_params = {
@@ -51,7 +51,7 @@ static THD_FUNCTION(MAX6675Thread, arg) {
   while(TRUE) {
     chMtxLock(&system_state.mutex);
     system_state.temperature = MAX6675Read();
-    system_state.updated = UPD_TEMPERATURE;
+    system_state.updated |= UPD_TEMPERATURE;
     chMtxUnlock(&system_state.mutex);
     chThdSleepMilliseconds(500);
   }
@@ -108,14 +108,15 @@ static THD_FUNCTION(UpdateDisplay, arg) {
 
     system_state.return_interfaces_top = current_sate.return_interfaces_top;
     system_state.interface = current_sate.interface;
+
     memcpy(system_state.return_interface,
            current_sate.return_interface,
            sizeof(current_sate.return_interface));
 
     if(current_sate.updated & UPD_SET_TEMPERATURE) {
       chMtxLock(&system_state.mutex);
-      system_state.updated|= (current_sate.updated & UPD_SET_TEMPERATURE);
       system_state.set_temperature = current_sate.set_temperature;
+      system_state.updated |= UPD_SET_TEMPERATURE;
       chMtxUnlock(&system_state.mutex);
     }
 

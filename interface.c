@@ -14,13 +14,13 @@
 #include "iic1602.h"
 
 static interface_t adjust_screen = {
-                                    .type = OVERVIEW,
                                     .OnPress = HeatingScreen,
                                     .OnLongPress = SettingsScreen,
                                     .OnLoad = AdjustScreenOnLoad,
+                                    .OnEncoder = AdjustOnEncoder,
                                     .encoder_arr = 50,
                                     .Render = RenderFeatures,
-                                    .OnEncoder = AdjustOnEncoder,
+                                    .items_count = 2,
                                     .items = {
                                               {.features = SHOW_TEMPERATURE|SHOW_SET_VALUE},
                                               {.text = " PRESS TO START"}
@@ -28,10 +28,11 @@ static interface_t adjust_screen = {
 };
 
 static interface_t heating_screen = {
-                                     .type = OVERVIEW,
                                      .OnPress = AdjustScreen,
-                                     .Render = RenderFeatures,
+                                     .OnUnload = HeatingScreenOnUnload,
                                      .OnLongPress = SettingsScreen,
+                                     .Render = RenderFeatures,
+                                     .items_count = 2,
                                      .items = {
                                                {.features = SHOW_TEMPERATURE|SHOW_SET_VALUE},
                                                {.features = SHOW_PWM,.text = "HEATING"}
@@ -39,31 +40,44 @@ static interface_t heating_screen = {
 };
 
 static interface_t settings_screen = {
-                                      .type = MENU_INTERFACE,
                                       .OnLoad = SettingsScreenOnLoad,
-                                      .OnLongPress = ReturnFromSettingsScreen,
+                                      .OnLongPress = ExitSubInterface,
                                       .OnEncoder = SettingsOnEncoder,
-                                      .Render = RenderMenuItems,
-                                      .encoder_arr = 3, //[menu length - 1]
+                                      .Render = RenderMenuItemText,
                                       .encoder_cnt = 0,
+                                      .items_count = 8,
                                       .items = {
-                                                {.text = "float1.000-0.000",
-                                                 .OnPress = AdjustFloat},
-                                                {.text = "MENU2"},
-                                                {.text = "MENU3"},
-                                                {.text = "MENU4"}
+                                                {.text = "Kc",
+                                                 .parameter = &system_state.pid_params.kc,
+                                                 .RenderItem = RenderMenuItemFloat,
+                                                 .OnPress = AdjustFloat
+                                                },
+                                                {.text = "Ti"},
+                                                {.text = "Td"},
+                                                {.text = "Gain"},
+                                                {.text = "PWM Mode"},
+                                                {.text = "Save"},
+                                                {.text = "Cancel"},
+                                                {.text = "Load defaults"}
                                       }
 };
 
 static interface_t adjust_float_screen = {
-                                          .OnLongPress = ReturnToMenu,
-                                          .Render = RenderAdjustFloatScreen,
+                                          .OnLongPress = ExitSubInterface,
                                           .OnLoad = AdjustFloatScreenOnLoad,
                                           .OnEncoder = AdjustFloatScreenOnEncoder,
+                                          .Render = RenderAdjustFloatScreen,
                                           .encoder_arr = 100,
+                                          .items_count = 1,
                                           .items = {{.text = "Float:",
                                                      .OnLongPress = 0}}
 };
+
+/*
+ *
+ * Adjust float functions
+ *
+ */
 
 void AdjustFloatScreenOnEncoder(sys_state_t *state) {
   *(float *)state->interface->parameter_settings.parameter =
@@ -73,7 +87,7 @@ void AdjustFloatScreenOnEncoder(sys_state_t *state) {
 void AdjustFloatScreenOnLoad(sys_state_t *state){
   state->interface->parameter_settings.max = &(float){0.0f};
   state->interface->parameter_settings.max = &(float){1.0f};
-  state->interface->parameter_settings.parameter = &state->f_param;
+  state->interface->parameter_settings.parameter = &state->pid_params.kc;
   EncoderSetup(state->interface->encoder_arr,
                (uint16_t)((*(float *)state->interface->parameter_settings.parameter)*100));
 }
@@ -82,11 +96,11 @@ void AdjustFloat (sys_state_t *state) {
   EnterSubInterface(state, &adjust_float_screen);
 }
 
-void RenderAdjustFloatScreen(sys_state_t *state, uint8_t line) {
+void RenderAdjustFloatScreen(sys_state_t *state, uint8_t item_number, uint8_t line) {
 
   if (!line) {
     LCD_goto(1,0);
-    LCD_string(state->interface->items[state->interface->selected].text);
+    LCD_string(state->interface->items[item_number].text);
   } else {
     LCD_goto(2,0);
     char tempstr[10];
@@ -95,21 +109,11 @@ void RenderAdjustFloatScreen(sys_state_t *state, uint8_t line) {
   }
 }
 
-void RenderMenuItems(sys_state_t *state, uint8_t line) {
-  char mark = ' ';
-  if (!line) mark = '>';
-  LCD_goto(line+1,0);
-
-  uint8_t item_number = state->interface->selected+line;
-  if (item_number>state->interface->encoder_arr
-      && state->interface->encoder_arr > 0) item_number = 0;
-  if (state->interface->items[item_number].text) {
-    char tempstr[16];
-    sprintf(tempstr, "%c%-15s", mark,
-            state->interface->items[item_number].text);
-    LCD_string(tempstr);
-  }
-}
+/*
+ *
+ *  Heating screen functions
+ *
+ */
 
 void HeatingScreen(sys_state_t *state) {
   state->interface = &heating_screen;
@@ -117,25 +121,124 @@ void HeatingScreen(sys_state_t *state) {
   state->interface->redraw = TRUE;
 }
 
+void HeatingScreenOnUnload(sys_state_t *state) {
+  state->pid_params.enabled = FALSE;
+}
+
+void RenderFeatures(sys_state_t* state, uint8_t item_number, uint8_t line) {
+
+
+  if (state->interface->items[item_number].text
+      && (state->interface->redraw || (state->updated & UPD_ENCODER))) {
+      LCD_goto(line, 0);
+      LCD_string(
+          state->interface->items[item_number].text);
+  }
+
+  if ((state->interface->items[item_number].features
+      & SHOW_TEMPERATURE )
+      && (state->interface->redraw || (state->updated & UPD_TEMPERATURE))) {
+    LCD_goto(line, 7);
+    char tempstr[10];
+    sprintf(tempstr, "%7.2f\337C", state->temperature);
+    LCD_string(tempstr);
+  }
+  if ((state->interface->items[item_number].features
+      & SHOW_SET_VALUE)
+      && (state->interface->redraw || (state->updated & UPD_SET_TEMPERATURE))) {
+    //TODO: PWM MODE
+    LCD_goto(line, 0);
+    char tempstr[6];
+    sprintf(tempstr, "%3d\337C", state->set_temperature);
+    LCD_string(tempstr);
+  }
+  if ((state->interface->items[item_number].features
+      & SHOW_PWM) && (state->interface->redraw || (state->updated & UPD_PWM))) {
+    LCD_goto(line, 12);
+    char tempstr[5];
+    sprintf(tempstr, "%d", state->pwm);
+    LCD_string(tempstr);
+  }
+}
+
+
+/*
+ *
+ * Adjust screen functions
+ *
+ */
+
 void AdjustScreen(sys_state_t *state) {
+  if (state->interface && state->interface->OnUnload) state->interface->OnUnload(state);
   state->interface = &adjust_screen;
   state->interface->OnLoad(state);
   state->interface->redraw = TRUE;
 }
 
+void AdjustOnEncoder(sys_state_t *state) {
+  state->set_temperature = state->encoder_cnt*10;
+  state->updated |= UPD_SET_TEMPERATURE;
+}
+
+
 void AdjustScreenOnLoad(sys_state_t *state) {
   EncoderSetup(state->interface->encoder_arr,state->set_temperature/10);
-  state->pid_params.enabled = FALSE;
+}
+
+
+/*
+ *
+ * Settings screen functions
+ *
+ */
+
+void SettingsScreen(sys_state_t *state) {
+  EnterSubInterface(state,&settings_screen);
+}
+
+void SettingsOnEncoder(sys_state_t *state) {
+  state->interface->selected = state->encoder_cnt;
+  state->interface->redraw = TRUE;
+}
+
+char Mark(uint8_t line) {
+  return line ?' ':'>';
+}
+
+void RenderMenuItemFloat(sys_state_t *state, uint8_t item_number, uint8_t line) {
+  if (!state->interface->redraw) return;
+  LCD_goto(line,0);
+  if (state->interface->items[item_number].text) {
+    char tempstr[16];
+    sprintf(tempstr, "%c%-11s %3.2f", Mark(line),
+            state->interface->items[item_number].text,
+            *(float *)(state->interface->items[item_number].parameter));
+    LCD_string(tempstr);
+  }
+}
+
+void RenderMenuItemText(sys_state_t *state, uint8_t item_number, uint8_t line) {
+  if (!state->interface->redraw) return;
+  LCD_goto(line,0);
+
+  if (state->interface->items[item_number].text) {
+    char tempstr[16];
+    sprintf(tempstr, "%c%s", Mark(line),
+            state->interface->items[item_number].text);
+    LCD_string(tempstr);
+  }
 }
 
 void SettingsScreenOnLoad(sys_state_t *state) {
-  EncoderSetup(state->interface->encoder_arr,state->interface->encoder_cnt);
-  state->pid_params.enabled = FALSE;
+  EncoderSetup(state->interface->items_count-1,state->interface->encoder_cnt);
 }
 
-void MenuInterfaceOnLoad(sys_state_t *state) {
-  EncoderSetup(state->interface->encoder_arr, state->interface->selected);
-}
+
+/*
+ *
+ * Generic functions
+ *
+ */
 
 void EnterSubInterface(sys_state_t *state, interface_t *new_interface) {
   if (state->interface->OnUnload) state->interface->OnUnload(state);
@@ -154,62 +257,8 @@ void ExitSubInterface(sys_state_t *state) {
   state->interface->redraw = TRUE;
 }
 
-void SettingsScreen(sys_state_t *state) {
-  EnterSubInterface(state,&settings_screen);
-}
 
-void ReturnToMenu(sys_state_t *state) {
-  ExitSubInterface(state);
-}
-
-
-void ReturnFromSettingsScreen(sys_state_t *state) {
-  ExitSubInterface(state);
-}
-
-void SettingsOnEncoder(sys_state_t *state) {
-  state->interface->selected = state->encoder_cnt;
-}
-
-void AdjustOnEncoder(sys_state_t *state) {
-  state->set_temperature = state->encoder_cnt*10;
-  state->updated |= UPD_SET_TEMPERATURE;
-}
-
-void RenderFeatures(sys_state_t* state, uint8_t line) {
-  if (state->interface->items[state->interface->selected + line].text
-      && (state->interface->redraw || (state->updated & UPD_ENCODER))) {
-      LCD_goto(line + 1, 0);
-      LCD_string(
-          state->interface->items[state->interface->selected + line].text);
-  }
-  if ((state->interface->items[state->interface->selected + line].features
-      & SHOW_TEMPERATURE )
-      && (state->interface->redraw || (state->updated & UPD_TEMPERATURE))) {
-    LCD_goto(line + 1, 7);
-    char tempstr[10];
-    sprintf(tempstr, "%7.2f\337C", state->temperature);
-    LCD_string(tempstr);
-  }
-  if ((state->interface->items[state->interface->selected + line].features
-      & SHOW_SET_VALUE)
-      && (state->interface->redraw || (state->updated & UPD_SET_TEMPERATURE))) {
-    //TODO: PWM MODE
-    LCD_goto(line + 1, 0);
-    char tempstr[6];
-    sprintf(tempstr, "%3d\337C", state->set_temperature);
-    LCD_string(tempstr);
-  }
-  if ((state->interface->items[state->interface->selected + line].features
-      & SHOW_PWM) && (state->interface->redraw || (state->updated & UPD_PWM))) {
-    LCD_goto(line + 1, 12);
-    char tempstr[5];
-    sprintf(tempstr, "%3d%%", state->pwm);
-    LCD_string(tempstr);
-  }
-}
-
-uint8_t RenderInterface(sys_state_t *state)  {
+void RenderInterface(sys_state_t *state)  {
 
 // startup interface: AdjustScreen
   if (!state->interface) {
@@ -246,16 +295,19 @@ uint8_t RenderInterface(sys_state_t *state)  {
   if (state->interface->redraw) LCD_clear();
 
   uint8_t line;
-  for (line=0;line<LCD_ROW_SIZE;line++) {
+  uint8_t item_number = state->interface->selected;
 
-    if (state->interface->items[state->interface->selected+line].RenderItem) {
-      state->interface->items[state->interface->selected+line].RenderItem(state, line);
+  for (line=0;line<LCD_ROW_SIZE;line++) {
+    if (item_number == state->interface->items_count) item_number = 0;
+
+    if (state->interface->items[item_number].RenderItem) {
+      state->interface->items[item_number].RenderItem(state, item_number, line);
     } else if (state->interface->Render) {
-      state->interface->Render(state, line);
+      state->interface->Render(state, item_number, line);
     }
 
+    item_number++;
   }
 
   state->interface->redraw = FALSE;
-  return 0;
 }

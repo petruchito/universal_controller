@@ -50,7 +50,7 @@ static interface_t settings_screen = {
                                                 {.text = "Kc",
                                                  .parameter = &system_state.pid_params.kc,
                                                  .RenderItem = RenderMenuItemFloat,
-                                                 .OnPress = AdjustFloat
+                                                 .OnPress = AdjustMenuItemFloat
                                                 },
                                                 {.text = "Ti"},
                                                 {.text = "Td"},
@@ -205,12 +205,43 @@ char Mark(uint8_t line) {
   return line ?' ':'>';
 }
 
+void AdjustMenuItemFloatOnEncoder(sys_state_t *state) {
+  *(float *)(state->interface->items[state->interface->selected].parameter) =
+        ((float)state->encoder_cnt/100);
+  state->interface->redraw = TRUE;
+}
+
+void AdjustMenuItemFloat(sys_state_t *state) {
+  static adjustment_mode_t mode = MODE_NORMAL;
+  static float old_value;
+  switch (mode) {
+  case MODE_NORMAL:
+    mode = MODE_ADJUSTMENT;
+    EncoderSetup(100,
+      (uint16_t)((*(float *)state->interface->items[state->interface->selected].parameter)*100));
+
+    state->interface->items[state->interface->selected].OnEncoder = AdjustMenuItemFloatOnEncoder;
+    state->interface->items[state->interface->selected].OnLongPress = AdjustMenuItemFloat;
+    old_value = *(float *)state->interface->items[state->interface->selected].parameter;
+    break;
+  case MODE_ADJUSTMENT:
+    mode = MODE_NORMAL;
+    state->interface->items[state->interface->selected].OnEncoder = NULL;
+    state->interface->items[state->interface->selected].OnLongPress = NULL;
+    EncoderSetup(state->interface->items_count-1,state->interface->selected);
+    if (state->encoder_button == BTN_LONGPRESS) {
+      *(float *)state->interface->items[state->interface->selected].parameter = old_value;
+    }
+    break;
+  }
+}
+
 void RenderMenuItemFloat(sys_state_t *state, uint8_t item_number, uint8_t line) {
   if (!state->interface->redraw) return;
   LCD_goto(line,0);
   if (state->interface->items[item_number].text) {
     char tempstr[16];
-    sprintf(tempstr, "%c%-11s %3.2f", Mark(line),
+    sprintf(tempstr, "%c%-10s %4.2f", Mark(line),
             state->interface->items[item_number].text,
             *(float *)(state->interface->items[item_number].parameter));
     LCD_string(tempstr);

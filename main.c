@@ -102,10 +102,6 @@ static THD_FUNCTION(UpdateDisplay, arg) {
 
     RenderInterface(&current_sate);
 
-    system_state.f_param = current_sate.f_param;
-    system_state.pid_params = current_sate.pid_params;
-    //TODO: add consistency mutex!
-
     system_state.return_interfaces_top = current_sate.return_interfaces_top;
     system_state.interface = current_sate.interface;
 

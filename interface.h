@@ -14,6 +14,10 @@
 #define MAX_INTERFACE_DEPTH 3
 typedef struct SystemState sys_state_t;
 extern sys_state_t system_state;
+typedef enum {
+  MODE_ADJUSTMENT,
+  MODE_NORMAL
+} adjustment_mode_t;
 
 typedef enum {
   SHOW_TEMPERATURE=0b1,
@@ -75,12 +79,14 @@ void AdjustScreenOnLoad(sys_state_t *state);
  * Settings screen functions
  *
  */
+char Mark(uint8_t line);
 void SettingsScreen(sys_state_t *state);
 void SettingsOnEncoder(sys_state_t *state);
 void SettingsScreenOnLoad(sys_state_t *state);
 void RenderMenuItemText(sys_state_t *state, uint8_t item_number, uint8_t line);
 void RenderMenuItemFloat(sys_state_t *state, uint8_t item_number, uint8_t line);
-
+void AdjustMenuItemFloat(sys_state_t *state);
+void AdjustMenuItemFloatOnEncoder(sys_state_t *state);
 /*
  *
  * Adjust float functions

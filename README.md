@@ -1,6 +1,6 @@
 # Universal controller
 
-## WORK IN PROGRESS
+## PROJECT ABANDONED ⚰️
 
 ## Description
 
